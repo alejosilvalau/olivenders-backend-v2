@@ -1,19 +1,18 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package files and install dependencies
+RUN corepack enable
+RUN npm install --global corepack@latest
+RUN corepack prepare pnpm@latest --activate
+
+COPY pnpm-lock.yaml ./
 COPY package*.json ./
-RUN npm install
+RUN pnpm install
 
-# Copy application code
 COPY . .
-
-# Build TypeScript code if needed
 RUN npm run build
 
-# Expose the port your application runs on
 EXPOSE 3000
 
-# Command to run the application
-CMD ["node", "dist/index.js"]
+CMD ["pnpm", "start"]
