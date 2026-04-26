@@ -1,14 +1,20 @@
-import { Request, Response, NextFunction } from 'express';
-import { objectIdSchema } from '../../shared/db/objectIdSchema.js';
-import { orm } from '../../shared/db/orm.js';
-import { z } from 'zod';
-import { Order, OrderStatus, PaymentProvider } from './order.entity.js';
-import { sanitizeOrderResponseArray, sanitizeOrderResponse } from '../../shared/entities/sanitizeOrderResponse.js';
-import { OpenAI } from 'openai';
-import { sanitizeInput } from '../../shared/db/sanitizeInput.js';
-import { ensureWandExists, ensureWizardExists } from '../../shared/db/ensureEntityExists.js';
-import { Wand, WandStatus } from '../wand/wand.entity.js';
-import { paginateEntity } from '../../shared/db/paginateEntity.js';
+import { Request, Response, NextFunction } from "express";
+import { objectIdSchema } from "../../shared/db/objectIdSchema.js";
+import { orm } from "../../shared/db/orm.js";
+import { z } from "zod";
+import { Order, OrderStatus, PaymentProvider } from "./order.entity.js";
+import {
+  sanitizeOrderResponseArray,
+  sanitizeOrderResponse,
+} from "../../shared/entities/sanitizeOrderResponse.js";
+import { OpenAI } from "openai";
+import { sanitizeInput } from "../../shared/db/sanitizeInput.js";
+import {
+  ensureWandExists,
+  ensureWizardExists,
+} from "../../shared/db/ensureEntityExists.js";
+import { Wand, WandStatus } from "../wand/wand.entity.js";
+import { paginateEntity } from "../../shared/db/paginateEntity.js";
 
 const em = orm.em;
 
@@ -41,28 +47,28 @@ async function findAll(req: Request, res: Response) {
     req,
     res,
     {},
-    ['wizard', 'wizard.school', 'wand', 'wand.wood', 'wand.core'],
-    sanitizeOrderResponseArray
+    ["wizard", "wizard.school", "wand", "wand.wood", "wand.core"],
+    sanitizeOrderResponseArray,
   );
 }
 
 async function findAllByWizard(req: Request, res: Response) {
   return paginateEntity(Order, em, req, res, { wizard: req.params.wizardId }, [
-    'wizard',
-    'wizard.school',
-    'wand',
-    'wand.wood',
-    'wand.core',
+    "wizard",
+    "wizard.school",
+    "wand",
+    "wand.wood",
+    "wand.core",
   ]);
 }
 
 async function findAllByWand(req: Request, res: Response) {
   return paginateEntity(Order, em, req, res, { wizard: req.params.wandId }, [
-    'wizard',
-    'wizard.school',
-    'wand',
-    'wand.wood',
-    'wand.core',
+    "wizard",
+    "wizard.school",
+    "wand",
+    "wand.wood",
+    "wand.core",
   ]);
 }
 
@@ -72,13 +78,15 @@ async function findOne(req: Request, res: Response) {
     const order = await em.findOneOrFail(
       Order,
       { id },
-      { populate: ['wizard', 'wizard.school', 'wand', 'wand.wood', 'wand.core'] }
+      {
+        populate: ["wizard", "wizard.school", "wand", "wand.wood", "wand.core"],
+      },
     );
     const sanitizedResponse = sanitizeOrderResponse(order);
-    res.status(200).json({ message: 'Order fetched', data: sanitizedResponse });
+    res.status(200).json({ message: "Order fetched", data: sanitizedResponse });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -94,7 +102,7 @@ async function add(req: Request, res: Response) {
     const wand = await ensureWandExists(em, input.wand, res);
     if (!wand) return;
     if (wand.status !== WandStatus.Available) {
-      res.status(400).json({ message: 'Wand is not available' });
+      res.status(400).json({ message: "Wand is not available" });
       return;
     }
 
@@ -105,9 +113,11 @@ async function add(req: Request, res: Response) {
     const order = em.create(Order, input);
     await em.flush();
     const sanitizedResponse = sanitizeOrderResponse(order);
-    res.status(201).json({ message: 'Order created', data: sanitizedResponse });
+    res.status(201).json({ message: "Order created", data: sanitizedResponse });
   } catch (error: any) {
-    res.status(500).json({ message: 'An error occurred while creating the order' });
+    res
+      .status(500)
+      .json({ message: "An error occurred while creating the order" });
   }
 }
 
@@ -124,10 +134,10 @@ async function update(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToUpdate);
-    res.status(200).json({ message: 'Order updated', data: sanitizedResponse });
+    res.status(200).json({ message: "Order updated", data: sanitizedResponse });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -137,10 +147,14 @@ async function update(req: Request, res: Response) {
 async function pay(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const orderToPay = await em.findOneOrFail(Order, { id }, { populate: ['wand'] });
+    const orderToPay = await em.findOneOrFail(
+      Order,
+      { id },
+      { populate: ["wand"] },
+    );
 
     if (orderToPay.status !== OrderStatus.Pending) {
-      res.status(400).json({ message: 'Order is not in a payable state' });
+      res.status(400).json({ message: "Order is not in a payable state" });
       return;
     }
 
@@ -151,10 +165,12 @@ async function pay(req: Request, res: Response) {
     orderToPay.wand.status = WandStatus.Sold;
     await em.flush();
     const sanitizedResponse = sanitizeOrderResponse(orderToPay);
-    res.status(200).json({ message: 'Order paid successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({ message: "Order paid successfully", data: sanitizedResponse });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -162,7 +178,7 @@ async function pay(req: Request, res: Response) {
 }
 
 function generateTrackingId(): string {
-  return 'TRK-' + Math.random().toString(36).slice(2, 10).toUpperCase();
+  return "TRK-" + Math.random().toString(36).slice(2, 10).toUpperCase();
 }
 
 function scheduleAutoDelivery(id: string) {
@@ -176,7 +192,7 @@ function scheduleAutoDelivery(id: string) {
         await em.flush();
       }
     } catch (err) {
-      console.error('Auto-delivery failed:', err);
+      console.error("Auto-delivery failed:", err);
     }
   }, delay);
 }
@@ -187,7 +203,7 @@ async function dispatch(req: Request, res: Response) {
     const orderToDispatch = await em.findOneOrFail(Order, { id });
 
     if (orderToDispatch.status !== OrderStatus.Paid) {
-      res.status(400).json({ message: 'Order is not in a dispatchable state' });
+      res.status(400).json({ message: "Order is not in a dispatchable state" });
       return;
     }
 
@@ -199,13 +215,18 @@ async function dispatch(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToDispatch);
-    res.status(200).json({ message: 'Order dispatched successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({
+        message: "Order dispatched successfully",
+        data: sanitizedResponse,
+      });
 
     // Trigger fake delivery after dispatch
     scheduleAutoDelivery(id);
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -218,7 +239,7 @@ async function complete(req: Request, res: Response) {
     const orderToComplete = await em.findOneOrFail(Order, { id });
 
     if (orderToComplete.status !== OrderStatus.Delivered) {
-      res.status(400).json({ message: 'Order is not in a completable state' });
+      res.status(400).json({ message: "Order is not in a completable state" });
       return;
     }
 
@@ -228,10 +249,15 @@ async function complete(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToComplete);
-    res.status(200).json({ message: 'Order completed successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({
+        message: "Order completed successfully",
+        data: sanitizedResponse,
+      });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -241,14 +267,20 @@ async function complete(req: Request, res: Response) {
 async function cancel(req: Request, res: Response) {
   try {
     const id = req.params.id;
-    const orderToCancel = await em.findOneOrFail(Order, { id }, { populate: ['wand'] });
+    const orderToCancel = await em.findOneOrFail(
+      Order,
+      { id },
+      { populate: ["wand"] },
+    );
 
     if (
       orderToCancel.status === OrderStatus.Completed ||
       orderToCancel.status === OrderStatus.Refunded ||
       orderToCancel.status === OrderStatus.Pending
     ) {
-      res.status(400).json({ message: 'Order cannot be cancelled at this stage' });
+      res
+        .status(400)
+        .json({ message: "Order cannot be cancelled at this stage" });
       return;
     }
 
@@ -257,10 +289,15 @@ async function cancel(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToCancel);
-    res.status(200).json({ message: 'Order cancelled successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({
+        message: "Order cancelled successfully",
+        data: sanitizedResponse,
+      });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -272,8 +309,11 @@ async function refund(req: Request, res: Response) {
     const id = req.params.id;
     const orderToRefund = await em.findOneOrFail(Order, { id });
 
-    if (orderToRefund.status !== OrderStatus.Cancelled && orderToRefund.status !== OrderStatus.Completed) {
-      res.status(400).json({ message: 'Order is not in a refundable state' });
+    if (
+      orderToRefund.status !== OrderStatus.Cancelled &&
+      orderToRefund.status !== OrderStatus.Completed
+    ) {
+      res.status(400).json({ message: "Order is not in a refundable state" });
       return;
     }
 
@@ -284,10 +324,15 @@ async function refund(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToRefund);
-    res.status(200).json({ message: 'Order refunded successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({
+        message: "Order refunded successfully",
+        data: sanitizedResponse,
+      });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -303,17 +348,20 @@ async function checkReviewWithOpenAI(reviewText: string): Promise<boolean> {
   `;
 
   const response = await openai.chat.completions.create({
-    model: 'openai/gpt-4.1',
+    model: "openai/gpt-4.1-mini",
     messages: [
-      { role: 'system', content: 'You are a strict content moderation assistant.' },
-      { role: 'user', content: prompt },
+      {
+        role: "system",
+        content: "You are a strict content moderation assistant.",
+      },
+      { role: "user", content: prompt },
     ],
     temperature: 0,
     max_tokens: 1,
   });
 
   const content = response.choices[0].message.content?.trim().toUpperCase();
-  return content === 'SAFE';
+  return content === "SAFE";
 }
 
 async function review(req: Request, res: Response) {
@@ -322,7 +370,7 @@ async function review(req: Request, res: Response) {
     const orderToReview = await em.findOneOrFail(Order, { id });
 
     if (!orderToReview.completed || orderToReview.review) {
-      res.status(400).json({ message: 'Order is not in a reviewable state' });
+      res.status(400).json({ message: "Order is not in a reviewable state" });
       return;
     }
 
@@ -331,7 +379,9 @@ async function review(req: Request, res: Response) {
     // Use the extracted function to check the review
     const isSafe = await checkReviewWithOpenAI(reviewInput.review);
     if (!isSafe) {
-      res.status(400).json({ message: 'Review contains inappropriate content' });
+      res
+        .status(400)
+        .json({ message: "Review contains inappropriate content" });
       return;
     }
 
@@ -339,10 +389,15 @@ async function review(req: Request, res: Response) {
     await em.flush();
 
     const sanitizedResponse = sanitizeOrderResponse(orderToReview);
-    res.status(200).json({ message: 'Order reviewed successfully', data: sanitizedResponse });
+    res
+      .status(200)
+      .json({
+        message: "Order reviewed successfully",
+        data: sanitizedResponse,
+      });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
@@ -354,10 +409,10 @@ async function remove(req: Request, res: Response) {
     const id = req.params.id;
     const orderToDelete = await em.findOneOrFail(Order, { id });
     await em.removeAndFlush(orderToDelete);
-    res.status(200).json({ message: 'Order deleted' });
+    res.status(200).json({ message: "Order deleted" });
   } catch (error: any) {
-    if (error.name === 'NotFoundError') {
-      res.status(404).json({ message: 'Order not found' });
+    if (error.name === "NotFoundError") {
+      res.status(404).json({ message: "Order not found" });
     } else {
       res.status(500).json({ message: error.message });
     }
