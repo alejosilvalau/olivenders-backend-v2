@@ -1,18 +1,15 @@
-FROM node:20-slim
+FROM node:22.15.0-slim
 
 WORKDIR /usr/src/app
 
-RUN corepack enable
-RUN npm install --global corepack@latest
-RUN corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.6.5 --activate
 
 COPY pnpm-lock.yaml ./
 COPY package*.json ./
 RUN pnpm install
 
 COPY . .
-RUN npm run build
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["pnpm", "run", "start:dev"]
